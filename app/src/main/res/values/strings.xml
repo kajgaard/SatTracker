@@ -1,4 +1,5 @@
 <resources>
     <string name="app_name">SatTracker</string>
     <string name="orientation">Orientation: %1$.2f %2$.2f %3$.2f</string>
+    <string name="accel">Acceleration: %1$.2f %2$.2f %3$.2f</string>
 </resources>

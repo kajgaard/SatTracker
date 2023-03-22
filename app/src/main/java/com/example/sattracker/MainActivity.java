@@ -53,17 +53,29 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
     // consider storing these readings as unit vectors.
     @Override
     public void onSensorChanged(SensorEvent event) {
+        Resources res = getResources();
+
         if (event.sensor.getType() == Sensor.TYPE_ACCELEROMETER) {
             System.arraycopy(event.values, 0, accelerometerReading,
                     0, accelerometerReading.length);
+
+            // Set the Acceleration text
+            String accelText = String.format(res.getString(R.string.accel),
+                    accelerometerReading[0],
+                    accelerometerReading[1],
+                    accelerometerReading[2]);
+
+            TextView tv = findViewById(R.id.accel_textView);
+            tv.setText(accelText);
+
+
         } else if (event.sensor.getType() == Sensor.TYPE_MAGNETIC_FIELD) {
             System.arraycopy(event.values, 0, magnetometerReading,
                     0, magnetometerReading.length);
         }
 
+        // Set the orientation angle text
         updateOrientationAngles();
-
-        Resources res = getResources();
         String orientText = String.format(res.getString(R.string.orientation),
                                             orientationAngles[0],
                                             orientationAngles[1],
@@ -71,6 +83,7 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
 
         TextView tv = findViewById(R.id.orientation_textView);
         tv.setText(orientText);
+
     }
 
     // Compute the three orientation angles based on the most recent readings from
