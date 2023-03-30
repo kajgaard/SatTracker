@@ -2,4 +2,10 @@
     <string name="app_name">SatTracker</string>
     <string name="orientation">Orientation: %1$.2f %2$.2f %3$.2f</string>
     <string name="accel">Acceleration: %1$.2f %2$.2f %3$.2f</string>
+    <string name="title_activity_permission_rational">PermissionRationalActivity</string>
+    <string name="main_message_activity_permission_rational">Track activity changes by letting us read your phone\'s activity transitions.</string>
+    <string name="details_message_activity_permission_rational">This app\'s experience requires access to your phone\'s activity transitions to display changes from walking to standing still.</string>
+    <string name="no_thanks_activity_permission_rational">No Thanks</string>
+    <string name="continue_activity_permission_rational">Continue</string>
+    <string name="enable_disable_button_activity_recognition">Enable/Disable Activity Recognition</string>
 </resources>
