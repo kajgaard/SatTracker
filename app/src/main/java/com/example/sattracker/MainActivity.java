@@ -1,5 +1,7 @@
 package com.example.sattracker;
 
+import static java.lang.Math.abs;
+
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
@@ -41,16 +43,9 @@ import java.util.Locale;
 
 public class MainActivity extends AppCompatActivity implements SensorEventListener {
 
-    private SensorManager sensorManager;
-
-    private final float[] accelerometerReading = new float[3];
-    private final float[] magnetometerReading = new float[3];
-
-    private final float[] rotationMatrix = new float[9];
-    private final float[] orientationAngles = new float[3];
-
-
-
+    private SensorTracker sensorTracker;
+    private boolean sitting = false;
+    private String latestActivityStatus = "";
     private final static String TAG = "MainActivity";
     private boolean activityTrackingEnabled;
 
@@ -72,24 +67,9 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        sensorManager = (SensorManager) getSystemService(Context.SENSOR_SERVICE);
+        SensorManager sensorManager = (SensorManager) getSystemService(Context.SENSOR_SERVICE);
+        sensorTracker = new SensorTracker(sensorManager, getResources());
 
-        /*
-        Handler h = new Handler();
-        int delay = 5000; //milliseconds
-
-        h.postDelayed(new Runnable(){
-            public void run(){
-                updateOrientationAngles();
-
-                TextView tv = findViewById(R.id.orientation_textView);
-                tv.setText(orientationAngles[0] + " " + orientationAngles[1] +
-                           " " + orientationAngles[2]);
-
-                h.postDelayed(this, delay);
-            }
-        }, delay);
-         */
 
         activityTrackingEnabled = false;
 
@@ -118,7 +98,7 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         // Initialize PendingIntent that will be triggered when a activity transition occurs.
         Intent intent = new Intent(TRANSITIONS_RECEIVER_ACTION);
         mActivityTransitionsPendingIntent =
-                PendingIntent.getBroadcast(MainActivity.this, 0, intent, 0);
+                PendingIntent.getBroadcast(MainActivity.this, 0, intent, PendingIntent.FLAG_IMMUTABLE);
 
         // Create a BroadcastReceiver to listen for activity transitions.
         // The receiver listens for the PendingIntent above that is triggered by the system when an
@@ -159,13 +139,11 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         task.addOnSuccessListener(
                 result -> {
                     activityTrackingEnabled = true;
-                    //printToScreen("Transitions Api was successfully registered.");
                     Log.i(TAG, "Transitions Api was successfully registered.");
 
                 });
         task.addOnFailureListener(
                 e -> {
-                    //printToScreen("Transitions Api could NOT be registered: " + e);
                     Log.e(TAG, "Transitions Api could NOT be registered: " + e);
 
                 });
@@ -223,13 +201,10 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         // Enable/Disable activity tracking and ask for permissions if needed.
         if (activityRecognitionPermissionApproved()) {
 
-            if (activityTrackingEnabled) {
+            if (activityTrackingEnabled)
                 disableActivityTransitions();
-
-            }
-            else {
+            else
                 enableActivityTransitions();
-            }
 
         }
         else {
@@ -285,6 +260,7 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
             // TODO: Extract activity transition information from listener.
             if (ActivityTransitionResult.hasResult(intent)) {
 
+                Resources res = getResources();
                 ActivityTransitionResult result = ActivityTransitionResult.extractResult(intent);
 
                 for (ActivityTransitionEvent event : result.getTransitionEvents()) {
@@ -293,7 +269,13 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
                             " (" + toTransitionType(event.getTransitionType()) + ")" + "   " +
                             new SimpleDateFormat("HH:mm:ss", Locale.US).format(new Date());
 
-                    //printToScreen(info);
+                    latestActivityStatus = toActivityString(event.getActivityType());
+
+                    String transText =  String.format(res.getString(R.string.activity_transition),
+                                        info);
+
+                    TextView tv = findViewById(R.id.transition_textView);
+                    tv.setText(transText);
                     Log.i(TAG, info);
                 }
             }
@@ -303,51 +285,38 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
 
 
 
-    // Get readings from accelerometer and magnetometer. To simplify calculations,
-    // consider storing these readings as unit vectors.
+    // Get readings from accelerometer and magnetometer.
     @Override
     public void onSensorChanged(SensorEvent event) {
-        Resources res = getResources();
+        sensorTracker.receiveSensorData(event);
 
-        if (event.sensor.getType() == Sensor.TYPE_ACCELEROMETER) {
-            System.arraycopy(event.values, 0, accelerometerReading,
-                    0, accelerometerReading.length);
-
-            // Set the Acceleration text
-            String accelText = String.format(res.getString(R.string.accel),
-                    accelerometerReading[0],
-                    accelerometerReading[1],
-                    accelerometerReading[2]);
-
-            TextView tv = findViewById(R.id.accel_textView);
-            tv.setText(accelText);
-
-
-        } else if (event.sensor.getType() == Sensor.TYPE_MAGNETIC_FIELD) {
-            System.arraycopy(event.values, 0, magnetometerReading,
-                    0, magnetometerReading.length);
-        }
-
-        // Set the orientation angle text
-        updateOrientationAngles();
-        String orientText = String.format(res.getString(R.string.orientation),
-                                            orientationAngles[0],
-                                            orientationAngles[1],
-                                            orientationAngles[2]);
-
+        // Set the orientation and accel text
         TextView tv = findViewById(R.id.orientation_textView);
-        tv.setText(orientText);
+        tv.setText(sensorTracker.orientDataToString());
 
+        tv = findViewById(R.id.accel_textView);
+        tv.setText(sensorTracker.accelDataToString());
+
+        updateSittingStatus();
     }
 
-    // Compute the three orientation angles based on the most recent readings from
-    // the device's accelerometer and magnetometer.
-    public void updateOrientationAngles() {
-        // Update rotation matrix, which is needed to update orientation angles.
-        SensorManager.getRotationMatrix(rotationMatrix, null,
-                accelerometerReading, magnetometerReading);
+    public void updateSittingStatus() {
+        /*
+        double x_rot = orientationAngles[1];
+        double y_rot = orientationAngles[2];
+        double z_rot = orientationAngles[0];
 
-        SensorManager.getOrientation(rotationMatrix, orientationAngles);
+        if (x_rot >= -0.09 && x_rot <= 0.09 &&
+            z_rot >= -0.02 && z_rot <= 0.02 &&
+            y_rot >= -0.02 && y_rot <= 0.02)
+        {
+            sitting = true;
+        }
+        else
+            sitting = false;
+
+         */
+
     }
 
     @Override
@@ -359,19 +328,7 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
     protected void onResume() {
         super.onResume();
 
-        // Get updates from the accelerometer and magnetometer at a constant rate.
-        // To make batch operations more efficient and reduce power consumption,
-        // provide support for delaying updates to the application.
-        Sensor accelerometer = sensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER);
-        if (accelerometer != null) {
-            sensorManager.registerListener(this, accelerometer,
-                    SensorManager.SENSOR_DELAY_NORMAL, SensorManager.SENSOR_DELAY_UI);
-        }
-        Sensor magneticField = sensorManager.getDefaultSensor(Sensor.TYPE_MAGNETIC_FIELD);
-        if (magneticField != null) {
-            sensorManager.registerListener(this, magneticField,
-                    SensorManager.SENSOR_DELAY_NORMAL, SensorManager.SENSOR_DELAY_UI);
-        }
+        sensorTracker.resume(this);
     }
 
     @Override
@@ -379,7 +336,7 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         super.onPause();
 
         // Don't receive any more updates from either sensor.
-        sensorManager.unregisterListener(this);
+        sensorTracker.pause(this);
 
         // Disable activity transitions when user leaves the app.
         if (activityTrackingEnabled) {
@@ -391,6 +348,7 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
     protected void onStop() {
         super.onStop();
 
-        unregisterReceiver(mTransitionsReceiver);
+        if (mTransitionsReceiver != null)
+            unregisterReceiver(mTransitionsReceiver);
     }
 }
