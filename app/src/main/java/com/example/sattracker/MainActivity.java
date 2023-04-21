@@ -6,6 +6,7 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
+import androidx.localbroadcastmanager.content.LocalBroadcastManager;
 
 import android.Manifest;
 import android.app.PendingIntent;
@@ -59,8 +60,15 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
             BuildConfig.APPLICATION_ID + "TRANSITIONS_RECEIVER_ACTION";
 
     private PendingIntent mActivityTransitionsPendingIntent;
-    private TransitionsReceiver mTransitionsReceiver;
-    //private LogFragment mLogFragment;
+    private ActivityTransitionReceiver activityTransitionReceiver;
+
+
+    private BroadcastReceiver mMessageReceiver = new BroadcastReceiver() {
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            Log.d(TAG, intent.getStringExtra("message"));
+        }
+    };
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -70,9 +78,24 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         SensorManager sensorManager = (SensorManager) getSystemService(Context.SENSOR_SERVICE);
         sensorTracker = new SensorTracker(sensorManager, getResources());
 
-
         activityTrackingEnabled = false;
 
+        // Initialize PendingIntent that will be triggered when a activity transition occurs.
+        Intent intent = new Intent(TRANSITIONS_RECEIVER_ACTION);
+        mActivityTransitionsPendingIntent =
+                PendingIntent.getBroadcast(MainActivity.this, 0, intent, PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_MUTABLE);
+
+        activityTransitionReceiver = new ActivityTransitionReceiver();
+    }
+
+    @Override
+    protected void onStart() {
+
+        super.onStart();
+        registerReceiver(activityTransitionReceiver, new IntentFilter("ACTIVITY_TRANSITION"));
+    }
+
+    ActivityTransitionRequest buildTransitionRequest() {
         // List of activity transitions to track.
         activityTransitionList = new ArrayList<>();
 
@@ -95,27 +118,31 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
                 .setActivityTransition(ActivityTransition.ACTIVITY_TRANSITION_EXIT)
                 .build());
 
-        // Initialize PendingIntent that will be triggered when a activity transition occurs.
-        Intent intent = new Intent(TRANSITIONS_RECEIVER_ACTION);
-        mActivityTransitionsPendingIntent =
-                PendingIntent.getBroadcast(MainActivity.this, 0, intent, PendingIntent.FLAG_IMMUTABLE);
-
-        // Create a BroadcastReceiver to listen for activity transitions.
-        // The receiver listens for the PendingIntent above that is triggered by the system when an
-        // activity transition occurs.
-        mTransitionsReceiver = new TransitionsReceiver();
-        registerReceiver(mTransitionsReceiver, new IntentFilter(TRANSITIONS_RECEIVER_ACTION));
+        return new ActivityTransitionRequest(activityTransitionList);
     }
 
 
     @Override
     protected void onActivityResult(int requestCode, int resultCode, @Nullable Intent data) {
+        Log.d(TAG, "OnActivityResult");
         // Start activity recognition if the permission was approved.
         if (activityRecognitionPermissionApproved() && !activityTrackingEnabled) {
             enableActivityTransitions();
         }
 
         super.onActivityResult(requestCode, resultCode, data);
+    }
+
+    private PendingIntent getActivityDetectionPendingIntent() {
+        Intent intent = new Intent(this, DetectedActivitiesIntentService.class);
+
+        LocalBroadcastManager.getInstance(this)
+                .registerReceiver(mMessageReceiver,
+                        new IntentFilter("my-integer"));
+
+        // We use FLAG_UPDATE_CURRENT so that we get the same pending intent back when calling
+        // requestActivityUpdates() and removeActivityUpdates().
+        return PendingIntent.getService(this, 0, intent, PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_MUTABLE);
     }
 
     /**
@@ -126,14 +153,10 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
 
         Log.d(TAG, "enableActivityTransitions()");
 
-
-        // Create request and listen for activity changes.
-        ActivityTransitionRequest request = new ActivityTransitionRequest(activityTransitionList);
-
-        // Register for Transitions Updates.
-        Task<Void> task =
-                ActivityRecognition.getClient(this)
-                        .requestActivityTransitionUpdates(request, mActivityTransitionsPendingIntent);
+        // ActivityTransitions API is wonky and we just have to continually poll to look for
+        // changes in state.
+        Task<Void> task = ActivityRecognition.getClient(this)
+                        .requestActivityUpdates(1000, getActivityDetectionPendingIntent());
 
 
         task.addOnSuccessListener(
@@ -165,14 +188,12 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
                     public void onSuccess(Void aVoid) {
                         activityTrackingEnabled = false;
                         Log.i(TAG, "Transitions successfully unregistered.");
-                        //printToScreen("Transitions successfully unregistered.");
                     }
                 })
                 .addOnFailureListener(new OnFailureListener() {
                     @Override
                     public void onFailure(@NonNull Exception e) {
-                        //printToScreen("Transitions could not be unregistered: " + e);
-                        Log.e(TAG,"Transitions could not be unregistered: " + e);
+                        Log.e(TAG, "Transitions could not be unregistered: " + e);
                     }
                 });
 
@@ -206,12 +227,11 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
             else
                 enableActivityTransitions();
 
-        }
-        else {
+        } else {
             // Request permission and start activity for result. If the permission is approved, we
             // want to make sure we start activity recognition tracking.
             Intent startIntent = new Intent(this, PermissionRationalActivity.class);
-            startActivityForResult(startIntent, 0);
+            startActivity(startIntent);
 
         }
     }
@@ -237,53 +257,6 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
                 return "UNKNOWN";
         }
     }
-
-    /**
-     * Handles intents from from the Transitions API.
-     */
-    public class TransitionsReceiver extends BroadcastReceiver {
-
-        @Override
-        public void onReceive(Context context, Intent intent) {
-
-            Log.d(TAG, "onReceive(): " + intent);
-
-            if (!TextUtils.equals(TRANSITIONS_RECEIVER_ACTION, intent.getAction())) {
-
-                /*
-                printToScreen("Received an unsupported action in TransitionsReceiver: action = " +
-                        intent.getAction());
-                */
-                return;
-            }
-
-            // TODO: Extract activity transition information from listener.
-            if (ActivityTransitionResult.hasResult(intent)) {
-
-                Resources res = getResources();
-                ActivityTransitionResult result = ActivityTransitionResult.extractResult(intent);
-
-                for (ActivityTransitionEvent event : result.getTransitionEvents()) {
-
-                    String info = "Transition: " + toActivityString(event.getActivityType()) +
-                            " (" + toTransitionType(event.getTransitionType()) + ")" + "   " +
-                            new SimpleDateFormat("HH:mm:ss", Locale.US).format(new Date());
-
-                    latestActivityStatus = toActivityString(event.getActivityType());
-
-                    String transText =  String.format(res.getString(R.string.activity_transition),
-                                        info);
-
-                    TextView tv = findViewById(R.id.transition_textView);
-                    tv.setText(transText);
-                    Log.i(TAG, info);
-                }
-            }
-
-        }
-    }
-
-
 
     // Get readings from accelerometer and magnetometer.
     @Override
@@ -348,7 +321,31 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
     protected void onStop() {
         super.onStop();
 
-        if (mTransitionsReceiver != null)
-            unregisterReceiver(mTransitionsReceiver);
+        unregisterReceiver(activityTransitionReceiver);
+
+    }
+
+    public class ActivityTransitionReceiver extends BroadcastReceiver {
+
+        @Override
+        public void onReceive(Context context, Intent intent) {
+
+            if (intent.getAction().equals("ACTIVITY_TRANSITION")) {
+                Log.d(TAG, "RECEIVED TRANSITION INTENT");
+                int conf = intent.getIntExtra("confidence", 0);
+                int type = intent.getIntExtra("type", 0);
+                Log.d(TAG, String.valueOf(conf) + " " + toActivityString(type));
+
+                TextView tv = findViewById(R.id.transition_textView);
+                String s = String.format(getResources().getString(R.string.activity_transition),
+                        toActivityString(type));
+                tv.setText(s);
+            }
+
+
+        }
+
+
+
     }
 }
