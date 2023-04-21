@@ -1,12 +1,9 @@
 package com.example.sattracker;
 
-import static java.lang.Math.abs;
-
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
-import androidx.localbroadcastmanager.content.LocalBroadcastManager;
 
 import android.Manifest;
 import android.app.PendingIntent;
@@ -15,44 +12,25 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.pm.PackageManager;
-import android.content.res.Resources;
-import android.hardware.Sensor;
-import android.hardware.SensorEvent;
-import android.hardware.SensorEventListener;
-import android.hardware.SensorManager;
-import android.icu.text.SimpleDateFormat;
 import android.os.Bundle;
-import android.text.TextUtils;
 import android.util.Log;
 import android.view.View;
 import android.widget.TextView;
 
 import com.google.android.gms.location.ActivityRecognition;
 import com.google.android.gms.location.ActivityTransition;
-import com.google.android.gms.location.ActivityTransitionEvent;
-import com.google.android.gms.location.ActivityTransitionRequest;
-import com.google.android.gms.location.ActivityTransitionResult;
 import com.google.android.gms.location.DetectedActivity;
 import com.google.android.gms.tasks.OnFailureListener;
 import com.google.android.gms.tasks.OnSuccessListener;
 import com.google.android.gms.tasks.Task;
 
-import java.util.ArrayList;
-import java.util.Date;
-import java.util.List;
-import java.util.Locale;
+public class MainActivity extends AppCompatActivity {
 
-public class MainActivity extends AppCompatActivity implements SensorEventListener {
-
-    private SensorTracker sensorTracker;
-    private boolean sitting = false;
-    private String latestActivityStatus = "";
+    private final boolean sitting = false;
     private final static String TAG = "MainActivity";
     private boolean activityTrackingEnabled;
 
-    private List<ActivityTransition> activityTransitionList;
-
-    private boolean runningQOrLater =
+    private final boolean runningQOrLater =
             android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.Q;
 
     // Action fired when transitions are triggered.
@@ -62,21 +40,10 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
     private PendingIntent mActivityTransitionsPendingIntent;
     private ActivityTransitionReceiver activityTransitionReceiver;
 
-
-    private BroadcastReceiver mMessageReceiver = new BroadcastReceiver() {
-        @Override
-        public void onReceive(Context context, Intent intent) {
-            Log.d(TAG, intent.getStringExtra("message"));
-        }
-    };
-
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
-
-        SensorManager sensorManager = (SensorManager) getSystemService(Context.SENSOR_SERVICE);
-        sensorTracker = new SensorTracker(sensorManager, getResources());
 
         activityTrackingEnabled = false;
 
@@ -86,39 +53,17 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
                 PendingIntent.getBroadcast(MainActivity.this, 0, intent, PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_MUTABLE);
 
         activityTransitionReceiver = new ActivityTransitionReceiver();
+        startService(new Intent(getBaseContext(), SensorService.class));
     }
 
     @Override
     protected void onStart() {
 
         super.onStart();
-        registerReceiver(activityTransitionReceiver, new IntentFilter("ACTIVITY_TRANSITION"));
-    }
-
-    ActivityTransitionRequest buildTransitionRequest() {
-        // List of activity transitions to track.
-        activityTransitionList = new ArrayList<>();
-
-
-        // Track WALKING (Enter and Exit), STILL (Enter and Exit)
-        activityTransitionList.add(new ActivityTransition.Builder()
-                .setActivityType(DetectedActivity.WALKING)
-                .setActivityTransition(ActivityTransition.ACTIVITY_TRANSITION_ENTER)
-                .build());
-        activityTransitionList.add(new ActivityTransition.Builder()
-                .setActivityType(DetectedActivity.WALKING)
-                .setActivityTransition(ActivityTransition.ACTIVITY_TRANSITION_EXIT)
-                .build());
-        activityTransitionList.add(new ActivityTransition.Builder()
-                .setActivityType(DetectedActivity.STILL)
-                .setActivityTransition(ActivityTransition.ACTIVITY_TRANSITION_ENTER)
-                .build());
-        activityTransitionList.add(new ActivityTransition.Builder()
-                .setActivityType(DetectedActivity.STILL)
-                .setActivityTransition(ActivityTransition.ACTIVITY_TRANSITION_EXIT)
-                .build());
-
-        return new ActivityTransitionRequest(activityTransitionList);
+        registerReceiver(activityTransitionReceiver,
+                        new IntentFilter(DetectedActivitiesIntentService.ACTIVITY_TRANSITION));
+        registerReceiver(activityTransitionReceiver,
+                new IntentFilter(SensorService.SENSOR_CHANGE));
     }
 
 
@@ -136,9 +81,6 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
     private PendingIntent getActivityDetectionPendingIntent() {
         Intent intent = new Intent(this, DetectedActivitiesIntentService.class);
 
-        LocalBroadcastManager.getInstance(this)
-                .registerReceiver(mMessageReceiver,
-                        new IntentFilter("my-integer"));
 
         // We use FLAG_UPDATE_CURRENT so that we get the same pending intent back when calling
         // requestActivityUpdates() and removeActivityUpdates().
@@ -166,10 +108,7 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
 
                 });
         task.addOnFailureListener(
-                e -> {
-                    Log.e(TAG, "Transitions Api could NOT be registered: " + e);
-
-                });
+                e -> Log.e(TAG, "Transitions Api could NOT be registered: " + e));
 
     }
 
@@ -247,32 +186,6 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         }
     }
 
-    private static String toTransitionType(int transitionType) {
-        switch (transitionType) {
-            case ActivityTransition.ACTIVITY_TRANSITION_ENTER:
-                return "ENTER";
-            case ActivityTransition.ACTIVITY_TRANSITION_EXIT:
-                return "EXIT";
-            default:
-                return "UNKNOWN";
-        }
-    }
-
-    // Get readings from accelerometer and magnetometer.
-    @Override
-    public void onSensorChanged(SensorEvent event) {
-        sensorTracker.receiveSensorData(event);
-
-        // Set the orientation and accel text
-        TextView tv = findViewById(R.id.orientation_textView);
-        tv.setText(sensorTracker.orientDataToString());
-
-        tv = findViewById(R.id.accel_textView);
-        tv.setText(sensorTracker.accelDataToString());
-
-        updateSittingStatus();
-    }
-
     public void updateSittingStatus() {
         /*
         double x_rot = orientationAngles[1];
@@ -293,23 +206,13 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
     }
 
     @Override
-    public void onAccuracyChanged(Sensor sensor, int i) {
-
-    }
-
-    @Override
     protected void onResume() {
         super.onResume();
-
-        sensorTracker.resume(this);
     }
 
     @Override
     protected void onPause() {
         super.onPause();
-
-        // Don't receive any more updates from either sensor.
-        sensorTracker.pause(this);
 
         // Disable activity transitions when user leaves the app.
         if (activityTrackingEnabled) {
@@ -340,6 +243,24 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
                 String s = String.format(getResources().getString(R.string.activity_transition),
                         toActivityString(type));
                 tv.setText(s);
+            }
+            else if (intent.getAction().equals(SensorService.SENSOR_CHANGE)) {
+                float[] accel = intent.getFloatArrayExtra("accel") ;
+                float[] orient = intent.getFloatArrayExtra("orient") ;
+
+                TextView tv = findViewById(R.id.orientation_textView);
+                String orientString =  String.format(getResources().getString(R.string.orientation),
+                        orient[0],
+                        orient[1],
+                        orient[2]);
+                tv.setText(orientString);
+
+                tv = findViewById(R.id.accel_textView);
+                String accelString =  String.format(getResources().getString(R.string.accel),
+                        accel[0],
+                        accel[1],
+                        accel[2]);
+                tv.setText(accelString);
             }
 
 
