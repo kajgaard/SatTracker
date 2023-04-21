@@ -26,7 +26,7 @@ import com.google.android.gms.tasks.Task;
 
 public class MainActivity extends AppCompatActivity {
 
-    private final boolean sitting = false;
+    private boolean sitting = false;
     private final static String TAG = "MainActivity";
     private boolean activityTrackingEnabled;
 
@@ -186,24 +186,6 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
-    public void updateSittingStatus() {
-        /*
-        double x_rot = orientationAngles[1];
-        double y_rot = orientationAngles[2];
-        double z_rot = orientationAngles[0];
-
-        if (x_rot >= -0.09 && x_rot <= 0.09 &&
-            z_rot >= -0.02 && z_rot <= 0.02 &&
-            y_rot >= -0.02 && y_rot <= 0.02)
-        {
-            sitting = true;
-        }
-        else
-            sitting = false;
-
-         */
-
-    }
 
     @Override
     protected void onResume() {
@@ -230,39 +212,74 @@ public class MainActivity extends AppCompatActivity {
 
     public class ActivityTransitionReceiver extends BroadcastReceiver {
 
+        private int lastDetectedActivity = 0;
+        private float[] accel;
+        private float[] orient;
+
+        public void updateSittingStatus() {
+
+
+
+            float x_rot = orient[1];
+            float y_rot = orient[2];
+            //float z_rot = orient[0];
+
+            if (x_rot >= -0.2 && x_rot <= 0.2 &&
+                y_rot >= -0.3 && y_rot <= 0.3 && lastDetectedActivity == DetectedActivity.STILL)
+            {
+                sitting = true;
+            }
+            else
+                sitting = false;
+
+            TextView tv = findViewById(R.id.sitting_textView);
+            String sittingText = String.format(getResources().getString(R.string.sitting), sitting);
+            tv.setText(sittingText);
+        }
+
+        void receiveActivityTransition(Intent intent) {
+            Log.d(TAG, "RECEIVED TRANSITION INTENT");
+            int conf = intent.getIntExtra("confidence", 0);
+            int type = intent.getIntExtra("type", 0);
+            Log.d(TAG, String.valueOf(conf) + " " + toActivityString(type));
+
+            lastDetectedActivity = type;
+
+            TextView tv = findViewById(R.id.transition_textView);
+            String s = String.format(getResources().getString(R.string.activity_transition),
+                    toActivityString(type));
+            tv.setText(s);
+        }
+
+        void receiveSensorChange(Intent intent) {
+            accel = intent.getFloatArrayExtra("accel") ;
+            orient = intent.getFloatArrayExtra("orient") ;
+
+            TextView tv = findViewById(R.id.orientation_textView);
+            String orientString =  String.format(getResources().getString(R.string.orientation),
+                    orient[0],
+                    orient[1],
+                    orient[2]);
+            tv.setText(orientString);
+
+            tv = findViewById(R.id.accel_textView);
+            String accelString =  String.format(getResources().getString(R.string.accel),
+                    accel[0],
+                    accel[1],
+                    accel[2]);
+            tv.setText(accelString);
+
+        }
+
         @Override
         public void onReceive(Context context, Intent intent) {
 
-            if (intent.getAction().equals(DetectedActivitiesIntentService.ACTIVITY_TRANSITION)) {
-                Log.d(TAG, "RECEIVED TRANSITION INTENT");
-                int conf = intent.getIntExtra("confidence", 0);
-                int type = intent.getIntExtra("type", 0);
-                Log.d(TAG, String.valueOf(conf) + " " + toActivityString(type));
+            if (intent.getAction().equals(DetectedActivitiesIntentService.ACTIVITY_TRANSITION))
+                receiveActivityTransition(intent);
+            else if (intent.getAction().equals(SensorService.SENSOR_CHANGE))
+                receiveSensorChange(intent);
 
-                TextView tv = findViewById(R.id.transition_textView);
-                String s = String.format(getResources().getString(R.string.activity_transition),
-                        toActivityString(type));
-                tv.setText(s);
-            }
-            else if (intent.getAction().equals(SensorService.SENSOR_CHANGE)) {
-                float[] accel = intent.getFloatArrayExtra("accel") ;
-                float[] orient = intent.getFloatArrayExtra("orient") ;
-
-                TextView tv = findViewById(R.id.orientation_textView);
-                String orientString =  String.format(getResources().getString(R.string.orientation),
-                        orient[0],
-                        orient[1],
-                        orient[2]);
-                tv.setText(orientString);
-
-                tv = findViewById(R.id.accel_textView);
-                String accelString =  String.format(getResources().getString(R.string.accel),
-                        accel[0],
-                        accel[1],
-                        accel[2]);
-                tv.setText(accelString);
-            }
-
+            updateSittingStatus();
 
         }
 
