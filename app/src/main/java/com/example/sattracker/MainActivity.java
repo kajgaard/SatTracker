@@ -330,7 +330,7 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         @Override
         public void onReceive(Context context, Intent intent) {
 
-            if (intent.getAction().equals("ACTIVITY_TRANSITION")) {
+            if (intent.getAction().equals(DetectedActivitiesIntentService.ACTIVITY_TRANSITION)) {
                 Log.d(TAG, "RECEIVED TRANSITION INTENT");
                 int conf = intent.getIntExtra("confidence", 0);
                 int type = intent.getIntExtra("type", 0);

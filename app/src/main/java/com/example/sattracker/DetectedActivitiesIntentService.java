@@ -20,6 +20,8 @@ public class DetectedActivitiesIntentService extends Service {
 
 
 
+    public static final String ACTIVITY_TRANSITION = "ACTIVITY_TRANSITION";
+
     private Optional<Integer> lastDetectedActivity = Optional.empty();
     protected static final String TAG = "DetectedActivitiesIS";
 
@@ -32,19 +34,8 @@ public class DetectedActivitiesIntentService extends Service {
         super();
     }
 
-    private static String toActivityString(int activity) {
-        switch (activity) {
-            case DetectedActivity.STILL:
-                return "STILL";
-            case DetectedActivity.WALKING:
-                return "WALKING";
-            default:
-                return "UNKNOWN";
-        }
-    }
-
     private void sendMessage(DetectedActivity a) {
-        Intent intent = new Intent("ACTIVITY_TRANSITION");
+        Intent intent = new Intent(ACTIVITY_TRANSITION);
         intent.putExtra("confidence", a.getConfidence());
         intent.putExtra("type", a.getType());
         sendBroadcast(intent);
@@ -89,6 +80,4 @@ public class DetectedActivitiesIntentService extends Service {
     public IBinder onBind(Intent intent) {
         return null;
     }
-
-
 }
