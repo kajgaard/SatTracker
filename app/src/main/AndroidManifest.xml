@@ -36,6 +36,11 @@
             android:exported="false">
         </service>
 
+        <service
+            android:name=".SittingService"
+            android:exported="false">
+        </service>
+
     </application>
 
 </manifest>

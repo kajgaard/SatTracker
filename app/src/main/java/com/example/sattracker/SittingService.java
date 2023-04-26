@@ -1,9 +1,14 @@
 package com.example.sattracker;
 
+import static com.example.sattracker.ActivityConverter.toActivityString;
+
 import android.app.Service;
 import android.content.BroadcastReceiver;
+import android.content.ContentValues;
 import android.content.Context;
 import android.content.Intent;
+import android.content.IntentFilter;
+import android.database.sqlite.SQLiteDatabase;
 import android.os.IBinder;
 import android.util.Log;
 
@@ -11,9 +16,13 @@ import androidx.annotation.Nullable;
 
 import com.google.android.gms.location.DetectedActivity;
 
+import java.sql.Timestamp;
+import java.time.LocalDateTime;
+
 public class SittingService extends Service {
 
     private boolean sitting;
+    private SittingStatus sittingStatus;
     private Receiver receiver;
 
     private static final String TAG = "SITTING_SERVICE";
@@ -23,10 +32,44 @@ public class SittingService extends Service {
     public void onCreate() {
         sitting = false;
         receiver = new Receiver();
+        sittingStatus = new SittingStatus(false, LocalDateTime.now());
+
+        registerReceiver(receiver,
+                new IntentFilter(DetectedActivitiesIntentService.ACTIVITY_TRANSITION));
+        registerReceiver(receiver,
+                new IntentFilter(SensorService.SENSOR_CHANGE));
 
 
+        Log.d(TAG, "Created SittingService");
     }
 
+    public void updateSittingStatus(float[] orient, int lastDetectedActivity) {
+        final float X_ROT_THRESHOLD = 0.2f;
+        final float Y_ROT_THRESHOLD = 0.2f;
+
+
+        float x_rot = orient[1];
+        float y_rot = orient[2];
+        //float z_rot = orient[0];
+
+        boolean newSitting = x_rot >= -X_ROT_THRESHOLD && x_rot <= X_ROT_THRESHOLD &&
+                y_rot >= -Y_ROT_THRESHOLD && y_rot <= Y_ROT_THRESHOLD &&
+                lastDetectedActivity == DetectedActivity.STILL;
+
+        LocalDateTime now = LocalDateTime.now();
+        SittingStatus newStatus = new SittingStatus(newSitting, now);
+
+        assert now.isAfter(sittingStatus.getTimestamp());
+
+        // Change in sitting status detected.
+        if (newSitting != sittingStatus.isSitting()) {
+            Database db = Database.getInstance(this);
+            db.addEntry(newStatus);
+        }
+
+
+        sittingStatus = newStatus;
+    }
 
     @Nullable
     @Override
@@ -36,36 +79,12 @@ public class SittingService extends Service {
 
 
 
-    private static String toActivityString(int activity) {
-        switch (activity) {
-            case DetectedActivity.STILL:
-                return "STILL";
-            case DetectedActivity.WALKING:
-                return "WALKING";
-            default:
-                return "UNKNOWN";
-        }
-    }
-
     public class Receiver extends BroadcastReceiver {
 
         private int lastDetectedActivity = 0;
         private float[] accel;
         private float[] orient;
 
-        public void updateSittingStatus() {
-            float x_rot = orient[1];
-            float y_rot = orient[2];
-            //float z_rot = orient[0];
-
-            if (x_rot >= -0.2 && x_rot <= 0.2 &&
-                    y_rot >= -0.3 && y_rot <= 0.3 && lastDetectedActivity == DetectedActivity.STILL)
-            {
-                sitting = true;
-            }
-            else
-                sitting = false;
-        }
 
         void receiveActivityTransition(Intent intent) {
             Log.d(TAG, "RECEIVED TRANSITION INTENT");
@@ -89,7 +108,7 @@ public class SittingService extends Service {
             else if (intent.getAction().equals(SensorService.SENSOR_CHANGE))
                 receiveSensorChange(intent);
 
-            updateSittingStatus();
+            updateSittingStatus(orient, lastDetectedActivity);
 
         }
 

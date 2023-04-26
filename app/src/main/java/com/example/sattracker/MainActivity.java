@@ -1,5 +1,6 @@
 package com.example.sattracker;
 
+
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
@@ -8,21 +9,18 @@ import androidx.core.app.ActivityCompat;
 import android.Manifest;
 import android.app.PendingIntent;
 import android.content.BroadcastReceiver;
-import android.content.Context;
 import android.content.Intent;
-import android.content.IntentFilter;
 import android.content.pm.PackageManager;
 import android.os.Bundle;
 import android.util.Log;
-import android.view.View;
-import android.widget.TextView;
 
 import com.google.android.gms.location.ActivityRecognition;
 import com.google.android.gms.location.ActivityTransition;
-import com.google.android.gms.location.DetectedActivity;
 import com.google.android.gms.tasks.OnFailureListener;
 import com.google.android.gms.tasks.OnSuccessListener;
 import com.google.android.gms.tasks.Task;
+
+import java.time.LocalDateTime;
 
 public class MainActivity extends AppCompatActivity {
 
@@ -38,7 +36,6 @@ public class MainActivity extends AppCompatActivity {
             BuildConfig.APPLICATION_ID + "TRANSITIONS_RECEIVER_ACTION";
 
     private PendingIntent mActivityTransitionsPendingIntent;
-    private ActivityTransitionReceiver activityTransitionReceiver;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -61,18 +58,13 @@ public class MainActivity extends AppCompatActivity {
         mActivityTransitionsPendingIntent =
                 PendingIntent.getBroadcast(MainActivity.this, 0, intent, PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_MUTABLE);
 
-        activityTransitionReceiver = new ActivityTransitionReceiver();
         startService(new Intent(getBaseContext(), SensorService.class));
+        startService(new Intent(getBaseContext(), SittingService.class));
     }
 
     @Override
     protected void onStart() {
-
         super.onStart();
-        registerReceiver(activityTransitionReceiver,
-                        new IntentFilter(DetectedActivitiesIntentService.ACTIVITY_TRANSITION));
-        registerReceiver(activityTransitionReceiver,
-                new IntentFilter(SensorService.SENSOR_CHANGE));
     }
 
 
@@ -93,7 +85,8 @@ public class MainActivity extends AppCompatActivity {
 
         // We use FLAG_UPDATE_CURRENT so that we get the same pending intent back when calling
         // requestActivityUpdates() and removeActivityUpdates().
-        return PendingIntent.getService(this, 0, intent, PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_MUTABLE);
+        return PendingIntent.getService(this, 0, intent,
+                PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_MUTABLE);
     }
 
     /**
@@ -130,7 +123,8 @@ public class MainActivity extends AppCompatActivity {
         Log.d(TAG, "disableActivityTransitions()");
 
         // Stop listening for activity changes.
-        ActivityRecognition.getClient(this).removeActivityTransitionUpdates(mActivityTransitionsPendingIntent)
+        ActivityRecognition.getClient(this)
+                .removeActivityTransitionUpdates(mActivityTransitionsPendingIntent)
                 .addOnSuccessListener(new OnSuccessListener<Void>() {
                     @Override
                     public void onSuccess(Void aVoid) {
@@ -177,18 +171,6 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
-    private static String toActivityString(int activity) {
-        switch (activity) {
-            case DetectedActivity.STILL:
-                return "STILL";
-            case DetectedActivity.WALKING:
-                return "WALKING";
-            default:
-                return "UNKNOWN";
-        }
-    }
-
-
     @Override
     protected void onResume() {
         super.onResume();
@@ -209,84 +191,6 @@ public class MainActivity extends AppCompatActivity {
     protected void onStop() {
         super.onStop();
 
-        unregisterReceiver(activityTransitionReceiver);
-
     }
 
-    public class ActivityTransitionReceiver extends BroadcastReceiver {
-
-        private int lastDetectedActivity = 0;
-        private float[] accel;
-        private float[] orient;
-
-        public void updateSittingStatus() {
-
-
-
-            float x_rot = orient[1];
-            float y_rot = orient[2];
-            //float z_rot = orient[0];
-
-            if (x_rot >= -0.2 && x_rot <= 0.2 &&
-                y_rot >= -0.3 && y_rot <= 0.3 && lastDetectedActivity == DetectedActivity.STILL)
-            {
-                sitting = true;
-            }
-            else
-                sitting = false;
-
-            TextView tv = findViewById(R.id.sitting_textView);
-            String sittingText = String.format(getResources().getString(R.string.sitting), sitting);
-            tv.setText(sittingText);
-        }
-
-        void receiveActivityTransition(Intent intent) {
-            Log.d(TAG, "RECEIVED TRANSITION INTENT");
-            int conf = intent.getIntExtra("confidence", 0);
-            int type = intent.getIntExtra("type", 0);
-            Log.d(TAG, String.valueOf(conf) + " " + toActivityString(type));
-
-            lastDetectedActivity = type;
-
-            TextView tv = findViewById(R.id.transition_textView);
-            String s = String.format(getResources().getString(R.string.activity_transition),
-                    toActivityString(type));
-            tv.setText(s);
-        }
-
-        void receiveSensorChange(Intent intent) {
-            accel = intent.getFloatArrayExtra("accel") ;
-            orient = intent.getFloatArrayExtra("orient") ;
-
-            TextView tv = findViewById(R.id.orientation_textView);
-            String orientString =  String.format(getResources().getString(R.string.orientation),
-                    orient[0],
-                    orient[1],
-                    orient[2]);
-            tv.setText(orientString);
-
-            tv = findViewById(R.id.accel_textView);
-            String accelString =  String.format(getResources().getString(R.string.accel),
-                    accel[0],
-                    accel[1],
-                    accel[2]);
-            tv.setText(accelString);
-
-        }
-
-        @Override
-        public void onReceive(Context context, Intent intent) {
-
-            if (intent.getAction().equals(DetectedActivitiesIntentService.ACTIVITY_TRANSITION))
-                receiveActivityTransition(intent);
-            else if (intent.getAction().equals(SensorService.SENSOR_CHANGE))
-                receiveSensorChange(intent);
-
-            updateSittingStatus();
-
-        }
-
-
-
-    }
 }
