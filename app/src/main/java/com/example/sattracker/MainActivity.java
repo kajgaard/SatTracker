@@ -45,7 +45,16 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        activityTrackingEnabled = false;
+        askForActivityRecognitionPermission();
+        activityTrackingEnabled = activityRecognitionPermissionApproved();
+
+        if (!activityTrackingEnabled)
+        {
+            Log.e(TAG, "Permissions were not granted, terminating.");
+            finishAndRemoveTask();
+        }
+
+        enableActivityTransitions();
 
         // Initialize PendingIntent that will be triggered when a activity transition occurs.
         Intent intent = new Intent(TRANSITIONS_RECEIVER_ACTION);
@@ -156,17 +165,10 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
-    public void onClickEnableOrDisableActivityRecognition(View view) {
+    public void askForActivityRecognitionPermission() {
 
         // Enable/Disable activity tracking and ask for permissions if needed.
-        if (activityRecognitionPermissionApproved()) {
-
-            if (activityTrackingEnabled)
-                disableActivityTransitions();
-            else
-                enableActivityTransitions();
-
-        } else {
+        if (!activityRecognitionPermissionApproved()) {
             // Request permission and start activity for result. If the permission is approved, we
             // want to make sure we start activity recognition tracking.
             Intent startIntent = new Intent(this, PermissionRationalActivity.class);
@@ -196,10 +198,11 @@ public class MainActivity extends AppCompatActivity {
     protected void onPause() {
         super.onPause();
 
-        // Disable activity transitions when user leaves the app.
+        /*
         if (activityTrackingEnabled) {
             disableActivityTransitions();
         }
+         */
     }
 
     @Override
