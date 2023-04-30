@@ -13,34 +13,27 @@
         android:theme="@style/Theme.SatTracker">
         <activity
             android:name=".MainActivity"
-            android:screenOrientation="nosensor"
-            android:exported="true">
+            android:exported="true"
+            android:screenOrientation="nosensor">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
 
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
-
         <activity
             android:name=".PermissionRationalActivity"
             android:label="@string/title_activity_permission_rational" />
 
         <service
             android:name=".DetectedActivitiesIntentService"
-            android:exported="false">
-        </service>
-
+            android:exported="false"></service>
         <service
             android:name=".SensorService"
-            android:exported="false">
-        </service>
-
+            android:exported="false"></service>
         <service
             android:name=".SittingService"
-            android:exported="false">
-        </service>
-
+            android:exported="false"></service>
     </application>
 
 </manifest>
