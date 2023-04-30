@@ -20,12 +20,16 @@ public class HomeFragment extends Fragment {
 
     private int progr = 0;
 
+    int deg = 0;
+
     private Button incr;
     private Button decr;
 
     private TextView progressTextView;
 
     private ProgressBar progressBar;
+
+    private ProgressBar progressBarBg;
 
     public View onCreateView(@NonNull LayoutInflater inflater,
                              ViewGroup container, Bundle savedInstanceState) {
@@ -41,6 +45,7 @@ public class HomeFragment extends Fragment {
             public void onClick(View v) {
                 if (progr <= 90){
                     progr += 10;
+                    deg = deg+66;
                     updateProgressBar();
                 }
             }
@@ -51,12 +56,15 @@ public class HomeFragment extends Fragment {
             public void onClick(View v) {
                 if (progr >= 10){
                     progr -= 10;
+                    deg = deg-66;
                     updateProgressBar();
                 }
             }
         });
 
         progressBar = binding.progressBar;
+        progressBarBg = binding.progressBarBg;
+
         progressTextView = binding.progressText;
 
         updateProgressBar();
@@ -72,7 +80,11 @@ public class HomeFragment extends Fragment {
     }
 
     public void updateProgressBar() {
-        progressBar.setProgress(progr,true);
+        progressBar.setMax(1000);
+        progressBarBg.setMax(1000);
+        progressBarBg.setProgress(660);
+        progressBar.setProgress(deg,true);
         progressTextView.setText(progr+"%");
+
     }
 }
