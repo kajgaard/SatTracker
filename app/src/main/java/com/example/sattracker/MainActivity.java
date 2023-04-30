@@ -48,7 +48,7 @@ public class MainActivity extends AppCompatActivity {
         if (!activityTrackingEnabled)
         {
             Log.e(TAG, "Permissions were not granted, terminating.");
-            finishAndRemoveTask();
+            //finishAndRemoveTask();
         }
 
         enableActivityTransitions();
