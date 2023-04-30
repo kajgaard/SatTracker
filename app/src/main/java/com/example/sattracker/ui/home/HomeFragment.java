@@ -4,6 +4,8 @@ import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.Button;
+import android.widget.ProgressBar;
 import android.widget.TextView;
 
 import androidx.annotation.NonNull;
@@ -16,16 +18,50 @@ public class HomeFragment extends Fragment {
 
     private FragmentHomeBinding binding;
 
+    private int progr = 0;
+
+    private Button incr;
+    private Button decr;
+
+    private TextView progressTextView;
+
+    private ProgressBar progressBar;
+
     public View onCreateView(@NonNull LayoutInflater inflater,
                              ViewGroup container, Bundle savedInstanceState) {
         HomeViewModel homeViewModel =
                 new ViewModelProvider(this).get(HomeViewModel.class);
 
+
         binding = FragmentHomeBinding.inflate(inflater, container, false);
         View root = binding.getRoot();
 
-        final TextView textView = binding.textHome;
-        homeViewModel.getText().observe(getViewLifecycleOwner(), textView::setText);
+        incr = binding.buttonIncr;
+        incr.setOnClickListener(new View.OnClickListener() {
+            public void onClick(View v) {
+                if (progr <= 90){
+                    progr += 10;
+                    updateProgressBar();
+                }
+            }
+        });
+        decr = binding.buttonDecr;
+
+        decr.setOnClickListener(new View.OnClickListener() {
+            public void onClick(View v) {
+                if (progr >= 10){
+                    progr -= 10;
+                    updateProgressBar();
+                }
+            }
+        });
+
+        progressBar = binding.progressBar;
+        progressTextView = binding.progressText;
+
+        updateProgressBar();
+        //final TextView textView = binding.textHome;
+        //homeViewModel.getText().observe(getViewLifecycleOwner(), textView::setText);
         return root;
     }
 
@@ -33,5 +69,10 @@ public class HomeFragment extends Fragment {
     public void onDestroyView() {
         super.onDestroyView();
         binding = null;
+    }
+
+    public void updateProgressBar() {
+        progressBar.setProgress(progr,true);
+        progressTextView.setText(progr+"%");
     }
 }
