@@ -12,7 +12,7 @@
         android:layout_height="400dp"
         android:indeterminateOnly="false"
         android:progressDrawable="@drawable/background"
-        tools:progress="60"
+        tools:progress="65"
         android:layout_marginStart="30dp"
         android:layout_marginTop="30dp"
         android:layout_marginEnd="30dp"
@@ -32,34 +32,71 @@
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent"
-        tools:progress="60" />
+        tools:progress="65" />
 
 
     <TextView
         android:id="@+id/progress_text"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
+        android:layout_marginEnd="70dp"
+        android:layout_marginBottom="30dp"
+        android:gravity="bottom"
         android:textAppearance="@style/TextAppearance.AppCompat.Large"
+        android:textSize="72sp"
         app:layout_constraintBottom_toBottomOf="@+id/progress_bar_bg"
         app:layout_constraintEnd_toEndOf="@+id/progress_bar_bg"
         app:layout_constraintStart_toStartOf="@+id/progress_bar_bg"
         app:layout_constraintTop_toTopOf="@+id/progress_bar_bg"
-        tools:text="60%" />
+        tools:text="100" />
 
     <Button
         android:id="@+id/button_incr"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:text="+10%"
-        app:layout_constraintEnd_toEndOf="@+id/progress_bar_bg"
-        app:layout_constraintTop_toBottomOf="@+id/progress_bar_bg" />
+        app:layout_constraintBottom_toTopOf="@+id/progress_bar_bg"
+        app:layout_constraintEnd_toEndOf="@+id/progress_bar_bg" />
 
     <Button
         android:id="@+id/button_decr"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
+        android:layout_marginStart="8dp"
         android:text="-10%"
-        app:layout_constraintStart_toStartOf="@+id/progress_bar_bg"
-        app:layout_constraintTop_toBottomOf="@+id/progress_bar_bg" />
+        app:layout_constraintBottom_toTopOf="@+id/progress_bar_bg"
+        app:layout_constraintStart_toStartOf="@+id/progress_bar_bg" />
+
+    <TextView
+        android:id="@+id/textViewGoal"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="5dp"
+        android:layout_marginBottom="8dp"
+        android:text="/240"
+        android:textSize="34sp"
+        app:layout_constraintBottom_toBottomOf="@+id/progress_text"
+        app:layout_constraintStart_toEndOf="@+id/progress_text" />
+
+    <TextView
+        android:id="@+id/textViewLimit"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="8dp"
+        android:text="personal\nmax. limit"
+        android:textSize="10sp"
+        app:layout_constraintBottom_toTopOf="@+id/textViewGoal"
+        app:layout_constraintStart_toStartOf="@+id/textViewGoal" />
+
+    <TextView
+        android:id="@+id/textViewMinutes"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="90dp"
+        android:text="minutes"
+        android:textSize="10sp"
+        app:layout_constraintEnd_toEndOf="@+id/progress_text"
+        app:layout_constraintStart_toStartOf="@+id/progress_text"
+        app:layout_constraintTop_toTopOf="@+id/progress_text" />
 
 </androidx.constraintlayout.widget.ConstraintLayout>

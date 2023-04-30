@@ -18,18 +18,19 @@ public class HomeFragment extends Fragment {
 
     private FragmentHomeBinding binding;
 
-    private int progr = 0;
+    private int progr = 0; //from 0-1000 -> 100% should equal to 660.
 
-    int deg = 0;
+    int deg = 0; //dont need to touch
 
+    //temp buttons
     private Button incr;
     private Button decr;
 
-    private TextView progressTextView;
+    private TextView progressTextView; //textview in the middle of progressbar
 
-    private ProgressBar progressBar;
+    private ProgressBar progressBar; //actual moving progressbar
 
-    private ProgressBar progressBarBg;
+    private ProgressBar progressBarBg; //static for aestetic purposes
 
     public View onCreateView(@NonNull LayoutInflater inflater,
                              ViewGroup container, Bundle savedInstanceState) {
@@ -67,6 +68,9 @@ public class HomeFragment extends Fragment {
 
         progressTextView = binding.progressText;
 
+        progressBar.setMax(1000);
+        progressBarBg.setMax(1000);
+        progressBarBg.setProgress(660);
         updateProgressBar();
         //final TextView textView = binding.textHome;
         //homeViewModel.getText().observe(getViewLifecycleOwner(), textView::setText);
@@ -80,11 +84,9 @@ public class HomeFragment extends Fragment {
     }
 
     public void updateProgressBar() {
-        progressBar.setMax(1000);
-        progressBarBg.setMax(1000);
-        progressBarBg.setProgress(660);
+
         progressBar.setProgress(deg,true);
-        progressTextView.setText(progr+"%");
+        progressTextView.setText(progr+"");
 
     }
 }
