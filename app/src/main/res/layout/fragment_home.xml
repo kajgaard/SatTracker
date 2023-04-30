@@ -10,15 +10,15 @@
         android:id="@+id/progress_bar_bg"
         android:layout_width="400dp"
         android:layout_height="400dp"
-        android:indeterminateOnly="false"
-        android:progressDrawable="@drawable/background"
-        tools:progress="65"
         android:layout_marginStart="30dp"
         android:layout_marginTop="30dp"
         android:layout_marginEnd="30dp"
+        android:indeterminateOnly="false"
+        android:progressDrawable="@drawable/background"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent"/>
+        app:layout_constraintTop_toTopOf="parent"
+        tools:progress="65" />
 
     <ProgressBar
         android:id="@+id/progress_bar"
@@ -98,5 +98,114 @@
         app:layout_constraintEnd_toEndOf="@+id/progress_text"
         app:layout_constraintStart_toStartOf="@+id/progress_text"
         app:layout_constraintTop_toTopOf="@+id/progress_text" />
+
+
+    <ImageView
+        android:id="@+id/seperator"
+        android:layout_width="0dp"
+        android:layout_height="25dp"
+        android:layout_marginTop="50dp"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintHorizontal_bias="1.0"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/progress_bar_bg"
+        app:srcCompat="@drawable/line" />
+
+    <ImageView
+        android:id="@+id/imageViewChair"
+        android:layout_width="wrap_content"
+        android:layout_height="50dp"
+        android:layout_marginStart="50dp"
+        android:layout_marginTop="40dp"
+        android:src="@drawable/icons_chair"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/seperator" />
+
+    <ImageView
+        android:id="@+id/imageViewCalendar"
+        android:layout_width="wrap_content"
+        android:layout_height="50dp"
+        android:layout_marginEnd="50dp"
+        android:src="@drawable/icons_week"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintTop_toTopOf="@+id/imageViewChair" />
+
+    <TextView
+        android:id="@+id/textViewDailyAvg"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="5dp"
+        android:text="Daily\naverage"
+        android:textAlignment="center"
+        android:textSize="16sp"
+        android:textStyle="bold"
+        app:layout_constraintEnd_toEndOf="@+id/imageViewChair"
+        app:layout_constraintStart_toStartOf="@+id/imageViewChair"
+        app:layout_constraintTop_toBottomOf="@+id/imageViewChair" />
+
+    <TextView
+        android:id="@+id/textViewGoalEst"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="5dp"
+        android:text="Weekly goal\nestimation"
+        android:textAlignment="center"
+        android:textSize="16sp"
+        android:textStyle="bold"
+        app:layout_constraintEnd_toEndOf="@+id/imageViewCalendar"
+        app:layout_constraintStart_toStartOf="@+id/imageViewCalendar"
+        app:layout_constraintTop_toBottomOf="@+id/imageViewCalendar" />
+
+    <TextView
+        android:id="@+id/weeklyAvgNo"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="5dp"
+        android:text="3,75"
+        android:textSize="34sp"
+        app:layout_constraintEnd_toEndOf="@+id/textViewDailyAvg"
+        app:layout_constraintStart_toStartOf="@+id/textViewDailyAvg"
+        app:layout_constraintTop_toBottomOf="@+id/textViewDailyAvg" />
+
+    <TextView
+        android:id="@+id/textViewWeekslyEstPer"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="83"
+        android:textSize="34sp"
+        app:layout_constraintBottom_toBottomOf="@+id/weeklyAvgNo"
+        app:layout_constraintEnd_toEndOf="@+id/textViewGoalEst"
+        app:layout_constraintStart_toStartOf="@+id/textViewGoalEst"
+        app:layout_constraintTop_toTopOf="@+id/weeklyAvgNo" />
+
+    <TextView
+        android:id="@+id/textViewHrs"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="hours"
+        android:textSize="16sp"
+        app:layout_constraintEnd_toEndOf="@+id/weeklyAvgNo"
+        app:layout_constraintStart_toStartOf="@+id/weeklyAvgNo"
+        app:layout_constraintTop_toBottomOf="@+id/weeklyAvgNo" />
+
+    <TextView
+        android:id="@+id/textViewPercent"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="%"
+        android:textSize="16sp"
+        app:layout_constraintEnd_toEndOf="@+id/textViewWeekslyEstPer"
+        app:layout_constraintStart_toStartOf="@+id/textViewWeekslyEstPer"
+        app:layout_constraintTop_toBottomOf="@+id/textViewWeekslyEstPer" />
+
+    <ImageView
+        android:id="@+id/ImageViewMockedWeek"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="45dp"
+        android:src="@drawable/week_goals"
+        app:layout_constraintBottom_toTopOf="@+id/seperator"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent" />
 
 </androidx.constraintlayout.widget.ConstraintLayout>
