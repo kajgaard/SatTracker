@@ -6,6 +6,7 @@ import androidx.lifecycle.ViewModel;
 
 public class ProfileViewModel extends ViewModel {
 
+
     private MutableLiveData<Double> mHours;
 
     public ProfileViewModel() {
