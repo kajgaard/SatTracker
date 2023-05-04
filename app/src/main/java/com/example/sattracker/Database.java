@@ -111,8 +111,6 @@ public class Database extends SQLiteOpenHelper
 
                    Log.d(TAG, date + " " + sitting);
 
-
-
                } while (cursor.moveToNext());
             }
 
@@ -123,13 +121,24 @@ public class Database extends SQLiteOpenHelper
                 cursor.close();
         }
 
-
-
         return statuses;
     }
 
 
 
+    public void deleteAll() {
+        SQLiteDatabase db = getWritableDatabase();
+
+        db.beginTransaction();
+        try {
+            db.delete(DATABASE_NAME, null, null);
+            db.setTransactionSuccessful();
+        } catch (Exception e) {
+            Log.d(TAG, "Could not clear database");
+        } finally {
+            db.endTransaction();
+        }
+    }
 
 
 }

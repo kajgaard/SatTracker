@@ -20,7 +20,10 @@ import com.google.android.gms.tasks.OnFailureListener;
 import com.google.android.gms.tasks.OnSuccessListener;
 import com.google.android.gms.tasks.Task;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.temporal.ChronoUnit;
+import java.util.List;
 
 public class MainActivity extends AppCompatActivity {
 
@@ -45,11 +48,13 @@ public class MainActivity extends AppCompatActivity {
         askForActivityRecognitionPermission();
         activityTrackingEnabled = activityRecognitionPermissionApproved();
 
+        /*
         if (!activityTrackingEnabled)
         {
             Log.e(TAG, "Permissions were not granted, terminating.");
             finishAndRemoveTask();
         }
+         */
 
         enableActivityTransitions();
 
@@ -60,11 +65,47 @@ public class MainActivity extends AppCompatActivity {
 
         startService(new Intent(getBaseContext(), SensorService.class));
         startService(new Intent(getBaseContext(), SittingService.class));
+
+
+        Database db = Database.getInstance(this);
+
     }
 
     @Override
     protected void onStart() {
         super.onStart();
+    }
+
+    private long collectDailySittingTime() {
+        long sittingTime = 0;
+
+        Database db = Database.getInstance(this);
+
+        // TODO: this receives all statuses unconditionally
+        List<SittingStatus> statuses = db.getEntry();
+
+        // Early exit if not enough entries to collect sitting time
+        if (statuses.size() < 2)
+            return sittingTime;
+
+        assert statuses.get(0).isSitting();
+
+        for (int i = 0; i < statuses.size() - 1; i++) {
+            SittingStatus s1 = statuses.get(i);
+
+            if (!s1.isSitting())
+                continue;
+
+            SittingStatus s2 = statuses.get(i + 1);
+
+            LocalDateTime t1 = s1.getTimestamp();
+            LocalDateTime t2 = s2.getTimestamp();
+
+            sittingTime += ChronoUnit.MINUTES.between(t1, t2);
+        }
+
+
+        return sittingTime;
     }
 
 
@@ -89,10 +130,6 @@ public class MainActivity extends AppCompatActivity {
                 PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_MUTABLE);
     }
 
-    /**
-     * Registers callbacks for {@link ActivityTransition} events via a custom
-     * {@link BroadcastReceiver}
-     */
     private void enableActivityTransitions() {
 
         Log.d(TAG, "enableActivityTransitions()");

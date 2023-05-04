@@ -18,6 +18,7 @@ import com.google.android.gms.location.DetectedActivity;
 
 import java.sql.Timestamp;
 import java.time.LocalDateTime;
+import java.time.temporal.ChronoUnit;
 
 public class SittingService extends Service {
 
@@ -59,10 +60,16 @@ public class SittingService extends Service {
         LocalDateTime now = LocalDateTime.now();
         SittingStatus newStatus = new SittingStatus(newSitting, now);
 
-        assert now.isAfter(sittingStatus.getTimestamp());
+        // stateChangeThreshold number of seconds must pass before sitting status is changed.
+        // This helps prevent sitting status from flickering rapidly between states.
+        long diff = ChronoUnit.SECONDS.between(sittingStatus.getTimestamp(), now);
+        long stateChangeThreshold = 2;
+
+        // We cannot assume that the following is true on start up
+        //assert now.isAfter(sittingStatus.getTimestamp());
 
         // Change in sitting status detected.
-        if (newSitting != sittingStatus.isSitting()) {
+        if (newSitting != sittingStatus.isSitting() && diff > stateChangeThreshold) {
             Database db = Database.getInstance(this);
             db.addEntry(newStatus);
         }
@@ -81,7 +88,7 @@ public class SittingService extends Service {
 
     public class Receiver extends BroadcastReceiver {
 
-        private int lastDetectedActivity = 0;
+        private int lastDetectedActivity = 10;
         private float[] accel;
         private float[] orient;
 
