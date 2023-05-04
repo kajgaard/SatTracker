@@ -61,10 +61,16 @@ public class SittingStatus {
         if (startIndex == -1)
             return sittingTime;
 
+        // It would be easiest to assume that the pattern in the database is always
+        // [sitting, not sitting, sitting, ... ], but due to unexpected crashes or shutdowns
+        // of the app this may not be the case.
 
-        for (int i = startIndex; i < statuses.size() - 1; i += 2) {
+        for (int i = startIndex; i < statuses.size() - 1; i += 1) {
             SittingStatus s1 = statuses.get(i);
             SittingStatus s2 = statuses.get(i + 1);
+
+            if (!s1.isSitting())
+                continue;
 
             Instant i1 = Instant.ofEpochMilli(s1.getTimestamp().getTime());
             Instant i2 = Instant.ofEpochMilli(s2.getTimestamp().getTime());

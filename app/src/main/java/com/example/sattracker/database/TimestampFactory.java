@@ -34,5 +34,15 @@ public class TimestampFactory {
         return new Timestamp(i.toEpochMilli());
     }
 
+    public static ZonedDateTime ofTimestamp(Timestamp timestamp) {
+        Instant i = Instant.ofEpochMilli(timestamp.getTime());
+        return i.atZone(TimeZone.getDefault().toZoneId());
+    }
+
+    public static ZonedDateTime now_zoned() {
+        Instant now = Instant.now();
+        return now.atZone(TimeZone.getDefault().toZoneId());
+    }
+
 
 }

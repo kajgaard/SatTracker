@@ -7,13 +7,19 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
 
 import android.Manifest;
+import android.app.ActivityManager;
 import android.app.PendingIntent;
 import android.content.BroadcastReceiver;
+import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.os.Bundle;
 import android.util.Log;
+import android.widget.TextView;
 
+import com.example.sattracker.database.AppDatabase;
+import com.example.sattracker.database.SittingStatus;
+import com.example.sattracker.database.SittingStatusDao;
 import com.google.android.gms.location.ActivityRecognition;
 import com.google.android.gms.location.ActivityTransition;
 import com.google.android.gms.tasks.OnFailureListener;
@@ -27,7 +33,6 @@ import java.util.List;
 
 public class MainActivity extends AppCompatActivity {
 
-    private boolean sitting = false;
     private final static String TAG = "MainActivity";
     private boolean activityTrackingEnabled;
 
@@ -63,8 +68,14 @@ public class MainActivity extends AppCompatActivity {
         mActivityTransitionsPendingIntent =
                 PendingIntent.getBroadcast(MainActivity.this, 0, intent, PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_MUTABLE);
 
-        startService(new Intent(getBaseContext(), SensorService.class));
-        startService(new Intent(getBaseContext(), SittingService.class));
+        if (!sensorServiceRunning())
+            startForegroundService(new Intent(getBaseContext(), SensorService.class));
+
+        if (!sittingServiceRunning())
+            startForegroundService(new Intent(getBaseContext(), SittingService.class));
+
+        updateSittingTime();
+
 
     }
 
@@ -82,6 +93,41 @@ public class MainActivity extends AppCompatActivity {
         }
 
         super.onActivityResult(requestCode, resultCode, data);
+    }
+
+    public boolean sensorServiceRunning() {
+        ActivityManager activityManager = (ActivityManager) getSystemService(Context.ACTIVITY_SERVICE);
+        for(ActivityManager.RunningServiceInfo service: activityManager.getRunningServices(Integer.MAX_VALUE)) {
+            if(SensorService.class.getName().equals(service.service.getClassName())) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    public boolean sittingServiceRunning() {
+        ActivityManager activityManager = (ActivityManager) getSystemService(Context.ACTIVITY_SERVICE);
+        for(ActivityManager.RunningServiceInfo service: activityManager.getRunningServices(Integer.MAX_VALUE)) {
+            if(SittingService.class.getName().equals(service.service.getClassName())) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private void updateSittingTime() {
+        AppDatabase db = AppDatabase.getInstance(this);
+        SittingStatusDao ssDao = db.sittingStatusDao();
+        List<SittingStatus> s = ssDao.getToday();
+        Log.d(TAG, "Today size: " + s.size());
+
+
+
+        TextView sittingTime = (TextView) findViewById(R.id.daily_sitting_time);
+        String text = String.format(getResources().getString(R.string.daily_sitting_time),
+                SittingStatus.collectTotalSittingTime(s));
+
+        sittingTime.setText(text);
     }
 
     private PendingIntent getActivityDetectionPendingIntent() {
@@ -175,6 +221,7 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onResume() {
         super.onResume();
+        updateSittingTime();
     }
 
     @Override

@@ -2,6 +2,9 @@ package com.example.sattracker;
 
 import static com.example.sattracker.ActivityConverter.toActivityString;
 
+import android.app.Notification;
+import android.app.NotificationChannel;
+import android.app.NotificationManager;
 import android.app.Service;
 import android.content.BroadcastReceiver;
 import android.content.ContentValues;
@@ -45,9 +48,33 @@ public class SittingService extends Service {
         registerReceiver(receiver,
                 new IntentFilter(SensorService.SENSOR_CHANGE));
 
+        final String CHANNEL_ID = "Sitting Service";
+        NotificationChannel channel = new NotificationChannel(
+                CHANNEL_ID,
+                CHANNEL_ID,
+                NotificationManager.IMPORTANCE_LOW
+        );
+
+        getSystemService(NotificationManager.class).createNotificationChannel(channel);
+        Notification.Builder notification = new Notification.Builder(this, CHANNEL_ID)
+                .setContentText("Service is running")
+                .setContentTitle("Service enabled")
+                .setSmallIcon(R.drawable.ic_launcher_background);
+
+        startForeground(1002, notification.build());
+
+
 
         Log.d(TAG, "Created SittingService");
     }
+
+    @Override
+    public void onDestroy() {
+        Log.d(TAG, "Destroyed SittingService");
+        unregisterReceiver(receiver);
+    }
+
+
 
     public void updateSittingStatus(float[] orient, int lastDetectedActivity) {
         final float X_ROT_THRESHOLD = 0.2f;
@@ -70,20 +97,21 @@ public class SittingService extends Service {
         Instant i1 = Instant.ofEpochMilli(sittingStatus.getTimestamp().getTime());
         Instant i2 = Instant.ofEpochMilli(now.getTime());
         long diff = ChronoUnit.SECONDS.between(i1, i2);
-        long stateChangeThreshold = 10;
+        long stateChangeThreshold = 2;
 
         // We cannot assume that the following is true on start up
         //assert now.isAfter(sittingStatus.getTimestamp());
 
         // Change in sitting status detected.
         if (newSitting != sittingStatus.isSitting() && diff > stateChangeThreshold) {
+            Log.d(TAG, "Inserted new sitting status");
             AppDatabase db = AppDatabase.getInstance(this);
             SittingStatusDao ssDao = db.sittingStatusDao();
             ssDao.insertAll(newStatus);
+            sittingStatus = newStatus;
         }
 
 
-        sittingStatus = newStatus;
     }
 
     @Nullable

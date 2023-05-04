@@ -1,5 +1,7 @@
 package com.example.sattracker.database;
 
+import android.util.Log;
+
 import androidx.room.Dao;
 import androidx.room.Delete;
 import androidx.room.Ignore;
@@ -7,8 +9,11 @@ import androidx.room.Insert;
 import androidx.room.MapInfo;
 import androidx.room.Query;
 
+import java.time.DayOfWeek;
 import java.time.Instant;
+import java.time.LocalDate;
 import java.time.Month;
+import java.time.Year;
 import java.time.ZonedDateTime;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -60,6 +65,26 @@ public interface SittingStatusDao {
 
 
         return multimap;
+    }
+
+    @Ignore
+    public default List<SittingStatus> getToday() {
+        List<SittingStatus> all = getAll();
+        Log.d("HEY",  ":" + all.size());
+        List<SittingStatus> todayList = new ArrayList<>();
+
+        ZonedDateTime now = TimestampFactory.now_zoned();
+        LocalDate today = now.toLocalDate();
+
+        for (SittingStatus ss : all) {
+            ZonedDateTime zdt = TimestampFactory.ofTimestamp(ss.getTimestamp());
+            LocalDate date = zdt.toLocalDate();
+
+            if (today.equals(date))
+                todayList.add(ss);
+        }
+
+        return todayList;
     }
 
 }

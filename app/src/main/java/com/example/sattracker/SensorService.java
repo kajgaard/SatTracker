@@ -1,5 +1,8 @@
 package com.example.sattracker;
 
+import android.app.Notification;
+import android.app.NotificationChannel;
+import android.app.NotificationManager;
 import android.app.Service;
 import android.content.Intent;
 import android.hardware.Sensor;
@@ -68,7 +71,7 @@ public class SensorService extends Service implements SensorEventListener {
         super.onCreate();
 
         Log.d(TAG, "Created SensorService");
-        SensorManager sensorManager = (SensorManager) getSystemService(SENSOR_SERVICE);
+        sensorManager = (SensorManager) getSystemService(SENSOR_SERVICE);
 
         Sensor accelerometer = sensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER);
         if (accelerometer != null) {
@@ -89,10 +92,31 @@ public class SensorService extends Service implements SensorEventListener {
 
         Log.d(TAG, "onStart (sensorservice");
 
-
         sendMessage();
 
+
+        final String CHANNEL_ID = "Sensor Service";
+        NotificationChannel channel = new NotificationChannel(
+                CHANNEL_ID,
+                CHANNEL_ID,
+                NotificationManager.IMPORTANCE_HIGH
+        );
+
+        getSystemService(NotificationManager.class).createNotificationChannel(channel);
+        Notification.Builder notification = new Notification.Builder(this, CHANNEL_ID)
+                .setContentText("Service is running")
+                .setContentTitle("Service enabled")
+                .setSmallIcon(R.drawable.ic_launcher_background);
+
+        startForeground(1001, notification.build());
+
         return START_STICKY;
+    }
+
+    @Override
+    public void onDestroy() {
+        Log.d(TAG, "Destroyed SensorService");
+        sensorManager.unregisterListener(this);
     }
 
     @Nullable

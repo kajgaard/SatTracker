@@ -3,6 +3,7 @@
     <string name="orientation">Orientation: %1$.2f %2$.2f %3$.2f</string>
     <string name="accel">Acceleration: %1$.2f %2$.2f %3$.2f</string>
     <string name="activity_transition">Activity Transition: %1$s</string>
+    <string name="daily_sitting_time">Sitting time today: %1$d</string>
     <string name="sitting">Sitting: %1$b</string>
     <string name="title_activity_permission_rational">PermissionRationalActivity</string>
     <string name="main_message_activity_permission_rational">Track activity changes by letting us read your phone\'s activity transitions.</string>
