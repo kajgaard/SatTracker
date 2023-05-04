@@ -7,6 +7,19 @@
     tools:context=".MainActivity">
 
 
+    <Button
+        android:id="@+id/toggle_button"
+        android:layout_width="match_parent"
+        android:layout_height="100dp"
+        android:layout_marginStart="10dp"
+        android:layout_marginEnd="10dp"
+        android:layout_marginBottom="40dp"
+        android:onClick="toggleSitting"
+        android:text="Enable sitting"
+        app:layout_constraintBottom_toTopOf="@+id/daily_sitting_time"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent" />
+
     <TextView
         android:id="@+id/daily_sitting_time"
         android:layout_width="wrap_content"

@@ -15,23 +15,29 @@ import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.os.Bundle;
 import android.util.Log;
+import android.view.View;
+import android.widget.Button;
 import android.widget.TextView;
 
 import com.example.sattracker.database.AppDatabase;
 import com.example.sattracker.database.SittingStatus;
 import com.example.sattracker.database.SittingStatusDao;
+import com.example.sattracker.database.TimestampFactory;
 import com.google.android.gms.location.ActivityRecognition;
 import com.google.android.gms.location.ActivityTransition;
 import com.google.android.gms.tasks.OnFailureListener;
 import com.google.android.gms.tasks.OnSuccessListener;
 import com.google.android.gms.tasks.Task;
 
+import java.sql.Timestamp;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
 
 public class MainActivity extends AppCompatActivity {
+
+    private boolean sitting = false;
 
     private final static String TAG = "MainActivity";
     private boolean activityTrackingEnabled;
@@ -63,17 +69,6 @@ public class MainActivity extends AppCompatActivity {
 
         enableActivityTransitions();
 
-        // Initialize PendingIntent that will be triggered when a activity transition occurs.
-        Intent intent = new Intent(TRANSITIONS_RECEIVER_ACTION);
-        mActivityTransitionsPendingIntent =
-                PendingIntent.getBroadcast(MainActivity.this, 0, intent, PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_MUTABLE);
-
-        if (!sensorServiceRunning())
-            startForegroundService(new Intent(getBaseContext(), SensorService.class));
-
-        if (!sittingServiceRunning())
-            startForegroundService(new Intent(getBaseContext(), SittingService.class));
-
         updateSittingTime();
 
 
@@ -93,6 +88,25 @@ public class MainActivity extends AppCompatActivity {
         }
 
         super.onActivityResult(requestCode, resultCode, data);
+    }
+
+    public void toggleSitting(View v) {
+        Timestamp now = TimestampFactory.now();
+        sitting = !sitting;
+
+        int i = sitting ? 1 : 0;
+        String[] arr = {"Enable Sitting", "Disable Sitting"};
+
+        SittingStatus newStatus = new SittingStatus(sitting, now);
+
+        AppDatabase db = AppDatabase.getInstance(this);
+        SittingStatusDao ssDao = db.sittingStatusDao();
+        ssDao.insertAll(newStatus);
+
+        updateSittingTime();
+
+        Button button = findViewById(R.id.toggle_button);
+        button.setText(arr[i]);
     }
 
     public boolean sensorServiceRunning() {
@@ -123,7 +137,7 @@ public class MainActivity extends AppCompatActivity {
 
 
 
-        TextView sittingTime = (TextView) findViewById(R.id.daily_sitting_time);
+        TextView sittingTime = findViewById(R.id.daily_sitting_time);
         String text = String.format(getResources().getString(R.string.daily_sitting_time),
                 SittingStatus.collectTotalSittingTime(s));
 
