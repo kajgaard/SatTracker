@@ -8,15 +8,20 @@ import android.content.ContentValues;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
-import android.database.sqlite.SQLiteDatabase;
 import android.os.IBinder;
 import android.util.Log;
 
+import com.example.sattracker.database.AppDatabase;
+import com.example.sattracker.database.SittingStatus;
+
 import androidx.annotation.Nullable;
 
+import com.example.sattracker.database.SittingStatusDao;
+import com.example.sattracker.database.TimestampFactory;
 import com.google.android.gms.location.DetectedActivity;
 
 import java.sql.Timestamp;
+import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
 
@@ -33,7 +38,7 @@ public class SittingService extends Service {
     public void onCreate() {
         sitting = false;
         receiver = new Receiver();
-        sittingStatus = new SittingStatus(false, LocalDateTime.now());
+        sittingStatus = new SittingStatus(false, TimestampFactory.now());
 
         registerReceiver(receiver,
                 new IntentFilter(DetectedActivitiesIntentService.ACTIVITY_TRANSITION));
@@ -57,21 +62,24 @@ public class SittingService extends Service {
                 y_rot >= -Y_ROT_THRESHOLD && y_rot <= Y_ROT_THRESHOLD &&
                 lastDetectedActivity == DetectedActivity.STILL;
 
-        LocalDateTime now = LocalDateTime.now();
+        Timestamp now = TimestampFactory.now();
         SittingStatus newStatus = new SittingStatus(newSitting, now);
 
         // stateChangeThreshold number of seconds must pass before sitting status is changed.
         // This helps prevent sitting status from flickering rapidly between states.
-        long diff = ChronoUnit.SECONDS.between(sittingStatus.getTimestamp(), now);
-        long stateChangeThreshold = 2;
+        Instant i1 = Instant.ofEpochMilli(sittingStatus.getTimestamp().getTime());
+        Instant i2 = Instant.ofEpochMilli(now.getTime());
+        long diff = ChronoUnit.SECONDS.between(i1, i2);
+        long stateChangeThreshold = 10;
 
         // We cannot assume that the following is true on start up
         //assert now.isAfter(sittingStatus.getTimestamp());
 
         // Change in sitting status detected.
         if (newSitting != sittingStatus.isSitting() && diff > stateChangeThreshold) {
-            Database db = Database.getInstance(this);
-            db.addEntry(newStatus);
+            AppDatabase db = AppDatabase.getInstance(this);
+            SittingStatusDao ssDao = db.sittingStatusDao();
+            ssDao.insertAll(newStatus);
         }
 
 

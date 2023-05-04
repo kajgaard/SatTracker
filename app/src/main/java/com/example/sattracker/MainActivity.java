@@ -66,48 +66,12 @@ public class MainActivity extends AppCompatActivity {
         startService(new Intent(getBaseContext(), SensorService.class));
         startService(new Intent(getBaseContext(), SittingService.class));
 
-
-        Database db = Database.getInstance(this);
-
     }
 
     @Override
     protected void onStart() {
         super.onStart();
     }
-
-    private long collectDailySittingTime() {
-        long sittingTime = 0;
-
-        Database db = Database.getInstance(this);
-
-        // TODO: this receives all statuses unconditionally
-        List<SittingStatus> statuses = db.getEntry();
-
-        // Early exit if not enough entries to collect sitting time
-        if (statuses.size() < 2)
-            return sittingTime;
-
-        assert statuses.get(0).isSitting();
-
-        for (int i = 0; i < statuses.size() - 1; i++) {
-            SittingStatus s1 = statuses.get(i);
-
-            if (!s1.isSitting())
-                continue;
-
-            SittingStatus s2 = statuses.get(i + 1);
-
-            LocalDateTime t1 = s1.getTimestamp();
-            LocalDateTime t2 = s2.getTimestamp();
-
-            sittingTime += ChronoUnit.MINUTES.between(t1, t2);
-        }
-
-
-        return sittingTime;
-    }
-
 
     @Override
     protected void onActivityResult(int requestCode, int resultCode, @Nullable Intent data) {
