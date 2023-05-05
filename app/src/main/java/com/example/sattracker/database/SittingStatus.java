@@ -75,7 +75,7 @@ public class SittingStatus {
             Instant i1 = Instant.ofEpochMilli(s1.getTimestamp().getTime());
             Instant i2 = Instant.ofEpochMilli(s2.getTimestamp().getTime());
 
-            sittingTime += ChronoUnit.MINUTES.between(i1, i2);
+            sittingTime += ChronoUnit.SECONDS.between(i1, i2);
         }
 
         return sittingTime;
